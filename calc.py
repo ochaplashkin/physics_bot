@@ -17,15 +17,15 @@ class Calculator():
         delt_x = round(self.result['full_error'],3)
         return [x,delt_x,e]
 
-    def get_detail_result(self):
+    def details(self):
         return self.result
 
     def setup(self,data):
         'quick setup settings'
         self.storage = data['array']
         self.count = data['count']
-        self.error_device = 0.0067
-        self.error_round = 0.0048
+        self.error_device = data['error_device']
+        self.error_round = data['error_round']
         #TODO:implements correct data
         #self.error_device = data['error_device']
         #self.error_round = data['error_round']
@@ -53,7 +53,7 @@ class Calculator():
             self.storage.append(data)
 
     def set_count(self,value):
-        'задать кол-в измерений' #TODO count ?= len(array)?
+        'задать кол-в измерений'
         self.count = value
 
     def set_error_device(self,value = 0.0067):
@@ -132,6 +132,7 @@ def test():
             print('Error set coeff. student')
         else:
             print('successfull!')
+    print(C.get_small_result())
 
 if __name__ == '__main__':
     test()
