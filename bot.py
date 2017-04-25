@@ -31,37 +31,43 @@ def result_key():
     markup.row('Подробно')
     return markup
 
+def answer_key():
+    markup = types.ReplyKeyboardMarkup(one_time_keyboard = True)
+    markup.row('Ввести точное значение')
+    markup.row('Расчитать')
+    return markup
+
 def select_result(message):
     result = calc.Calculator(DATA)
+    result.set_error_device(DATA['error_device'])
     x = result.get_small_result()[0]
     delt_x = result.get_small_result()[1]
     eps = result.get_small_result()[2]
     if message.text == 'Коротко':
-        out_string = 'Результат:\n x = {0} +/- {1}\n'.format(x,delt_x)
-        out_string += 'Относительная погрешность:\n{}\n'.format(eps)
+        out_string = '\U000025B6 Результат:\n\U000025FB x = {0} +/- {1}\n'.format(x,delt_x)
+        out_string += '\U000025B6 Относительная погрешность:\n\U000025FB{}\n'.format(eps)
         msg = bot.send_message(message.chat.id,out_string)
     else:
-        out_string = 'Среднее арфиметическое:\n{}\n'.format(round(result.details()['average_summ'],5))
+        out_string = '\U000025B6 Среднее арфиметическое:\n\U000025FB{}\n'.format(round(result.details()['average_summ'],5))
         i = 1
-        out_string += 'Случайная погрешность для каждого:\n'
+        out_string += '\U00002B07 Случайная погрешность для каждого\n'
         for elem in result.details()['rand_error']:
-            out_string += 'Случайная погрешность для {0}:\n{1}\n'.format(i,round(elem,5))
+            out_string += '\t\U000025B6 Измерение №{0}:\n\t\U000025FB {1}\n'.format(i,round(elem,5))
             i +=1
-        out_string += 'Квадраты погрешностей:\n'
+        out_string += '\U00002B07 Квадраты погрешностей\n'
         i = 1
         for qtr in result.details()['qtrs']:
-            out_string += 'Для {0}:\n{1}\n'.format(i,round(qtr,12))
+            out_string += '\t\U000025B6 Погрешность №{0}:\n\t\U000025FB {1}\n'.format(i,round(qtr,12))
             i +=1
-        out_string += 'Средняя квадратичная погрешность:\n{}\n'.format(round(result.details()['average_qtr'],5))
-        out_string += 'Средняя квадратичная всего результата:\n{}\n'.format(round(result.details()['all_average'],5))
-        out_string += 'Случайная погрешность:\n{}\n'.format(round(result.details()['random_error'],5))
-        #TODO: Implement selection entering error device as p*(h/2)
-        out_string += 'Погрешность округления:\n{}\n'.format(round(result.error_device,5))
-        out_string += 'Полная абсолютная погрешность измерений:\n{}\n'.format(round(result.details()['full_error'],5))
-        out_string += 'Относительная погрешность результата:\n{}\n'.format(round(result.details()['eps_error'],5))
-        out_string += 'Конечный результат:\n'
-        out_string += ' x = {0} +/- {1}\n'.format(x,delt_x)
-        out_string += 'eps:{}'.format(eps)
+        out_string += '\U000025B6 Средняя квадратичная погрешность:\n\U000025FB {}\n'.format(round(result.details()['average_qtr'],5))
+        out_string += '\U000025B6 Средняя квадратичная всего результата:\n\U000025FB {}\n'.format(round(result.details()['all_average'],5))
+        out_string += '\U000025B6 Случайная погрешность:\n\U000025FB {}\n'.format(round(result.details()['random_error'],5))
+        out_string += '\U000025B6 Погрешность округления:\n\U000025FB {}\n'.format(result.error_device)
+        out_string += '\U000025B6 Полная абсолютная погрешность измерений:\n\U000025FB {}\n'.format(round(result.details()['full_error'],5))
+        out_string += '\U000025B6 Относительная погрешность результата:\n\U000025FB {}\n'.format(round(result.details()['eps_error'],5))
+        out_string += '\U000025B6 Конечный результат:\n'
+        out_string += '\U000025FB x = {0} +/- {1}\n'.format(x,delt_x)
+        out_string += '\U000025B6 eps:{}'.format(eps)
         msg = bot.send_message(message.chat.id,out_string)
 
 def input_error_round(message):
@@ -69,25 +75,47 @@ def input_error_round(message):
     msg = bot.send_message(message.chat.id, 'Готово!\U0001F60A В какой форме вам нужен результат?', reply_markup = result_key())
     bot.register_next_step_handler(msg,select_result)
 
-def input_error_device(message):
+def helper_h(message):
+    DATA['error_device']['h'] = float(message.text)
+    msg = bot.send_message(message.chat.id, 'И последнее - ошибка округления.')
+    bot.register_next_step_handler(msg,input_error_round)
+
+def helper_p(message):
+    DATA['error_device'] = {}
+    DATA['error_device']['p'] = float(message.text)
+    msg = bot.send_message(message.chat.id, 'Цена деления прибора:')
+    bot.register_next_step_handler(msg,helper_h)
+
+def helper_err(message):
     DATA['error_device'] = float(message.text)
     msg = bot.send_message(message.chat.id, 'И последнее - ошибка округления.')
     bot.register_next_step_handler(msg,input_error_round)
 
+def input_error_device(message):
+    if message.text == 'Расчитать':
+        msg = bot.send_message(message.chat.id, 'Интервал вероятности:')
+        bot.register_next_step_handler(msg,helper_p)
+    else:
+        bot.register_next_step_handler(message,helper_err)
+
 def coeff(message):
-    DATA['st'] = float(message.text)
-    msg = bot.send_message(message.chat.id, 'Осталось чуть-чуть. Введите ошибку прибора\U0001F609')
-    bot.register_next_step_handler(msg,input_error_device)
+    if message.text != '/help_st':
+        DATA['st'] = float(message.text)
+        msg = bot.send_message(message.chat.id, 'Осталось чуть-чуть. Введите ошибку прибора\U0001F609',reply_markup=answer_key())
+        bot.register_next_step_handler(msg,input_error_device)
+    else:
+        #TODO: implements help for coeff st
+        bot.register_next_step_handler(message,help_st)
 
 def check_value(message):
     if DATA['iter'] <= DATA['count']-1:
         DATA['array'].append(float(message.text))
         DATA['iter'] += 1
-        msg = bot.send_message(message.chat.id,'\U000027A1 '+str(DATA['iter'])+' значение')
+        msg = bot.send_message(message.chat.id,'\U00002611 Значение №'+str(DATA['iter'])+':')
         bot.register_next_step_handler(msg,check_value)
     else:
         DATA['array'].append(float(message.text))
-        msg = bot.send_message(message.chat.id, '\U0001F60C Введите коэффицент Стьюдента:')
+        msg = bot.send_message(message.chat.id, '\U0001F60C Введите коэффицент Стьюдента:\n\U00002753 Не можете вспомнить?\n /help_st - уточните.')
         bot.register_next_step_handler(msg,coeff)
 
 def count_step(message):
@@ -101,6 +129,8 @@ def count_step(message):
         msg = bot.send_message(message.chat.id, 'Нет, нет\U0001F612 Я жду от Вас число..', reply_markup = get_keyboard())
         bot.register_next_step_handler(msg, count_step(msg,DATA['count']))
 
+#TODO: implements simple start with all commands
+#TODO: implements full help for work with bot
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     out = config.get_start()
@@ -110,6 +140,10 @@ def send_welcome(message):
 def help_message(message):
     out = config.get_help()
     msg = bot.send_message(message.chat.id, out)
+
+@bot.message_handler(commands=['/help_st'])
+def help_st(message):
+    msg = bot.send_message(message.chat.id, 'Я в хелпере стьюдента!')
 
 @bot.message_handler(commands=['calc'])
 def calc_operations(message):
