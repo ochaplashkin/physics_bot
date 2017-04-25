@@ -56,9 +56,15 @@ class Calculator():
         'задать кол-в измерений'
         self.count = value
 
-    def set_error_device(self,value = 0.0067):
+    def set_error_device(self,value):
         'задать ошибку прибора'
-        self.error_device = value
+        if type(value) == dict:
+            p = value['p']
+            h = value['h']
+            self.error_device = round( p*(h/2),5)
+        else:
+            self.error_device = round(value,5)
+
 
     def set_error_round(self,value = 0.0048):
         'задать ошибку округления'
